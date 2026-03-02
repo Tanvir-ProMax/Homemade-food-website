@@ -28,14 +28,8 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    // On mount, check if token exists. In a real app we'd verify the token with /api/auth/me
-    // For now, if token exists, we just mock a user to be "logged in" visually
+    // Set loading to false immediately on mount
     useEffect(() => {
-        const token = getToken()
-        if (token) {
-            // Decode JWT or fetch user profile
-            setUser({ name: 'Foodie', email: 'user@example.com' })
-        }
         setLoading(false)
     }, [])
 
