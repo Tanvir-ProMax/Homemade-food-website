@@ -1,4 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback } from 'react'
+ 
 import { AnimatePresence, motion } from 'framer-motion'
 
 const ToastContext = createContext()

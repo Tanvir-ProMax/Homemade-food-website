@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+ 
 import { motion } from 'framer-motion'
 import { FiCheckCircle, FiPackage, FiTruck, FiHome, FiMapPin, FiClock } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
@@ -173,7 +174,7 @@ export default function OrderTracking() {
                                 />
                             </div>
 
-                            {trackSteps.map((step, index) => {
+                            {trackSteps.map((step) => {
                                 const isCompleted = currentStep >= step.id
                                 const isCurrent = currentStep === step.id
                                 const Icon = step.icon

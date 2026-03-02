@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiX, FiPlus, FiMinus, FiTrash2, FiShoppingBag, FiTag, FiCheck, FiTruck, FiChevronRight } from 'react-icons/fi'

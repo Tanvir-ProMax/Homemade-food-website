@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import { createContext, useContext, useState, useEffect } from 'react'
 import axios from 'axios'
 
@@ -35,14 +37,18 @@ export function AuthProvider({ children }) {
             // Try to decode token to get user info (basic approach)
             try {
                 const decoded = JSON.parse(atob(token.split('.')[1] || ''))
+
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setUser({
                     name: decoded.name || 'User',
                     email: decoded.email || '',
                     isAdmin: decoded.isAdmin || false,
                 })
-            } catch (error) {
+            } catch {
                 // If decoding fails, still set minimal user so app works
                 console.log('Token decode failed, setting minimal user')
+
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setUser({
                     name: 'User',
                     email: '',

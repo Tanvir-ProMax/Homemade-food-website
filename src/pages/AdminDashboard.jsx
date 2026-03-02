@@ -46,11 +46,13 @@ export default function AdminDashboard() {
     // Fetch stats on load
     useEffect(() => {
         fetchStats()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // Fetch orders on load
     useEffect(() => {
         fetchOrders()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusFilter, searchTerm])
 
     // Fetch users on tab switch
@@ -58,6 +60,7 @@ export default function AdminDashboard() {
         if (activeTab === 'users') {
             fetchUsers()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab])
 
     // Fetch products on tab switch
@@ -65,6 +68,7 @@ export default function AdminDashboard() {
         if (activeTab === 'products') {
             fetchProducts()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab])
 
     const fetchStats = async () => {
@@ -387,11 +391,10 @@ export default function AdminDashboard() {
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${
-                                activeTab === tab.key
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === tab.key
                                     ? 'bg-orange-500 text-white shadow-lg'
                                     : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-                            }`}
+                                }`}
                         >
                             <tab.icon size={20} />
                             {tab.label}
@@ -618,11 +621,10 @@ export default function AdminDashboard() {
                                                     <td className="px-6 py-4">
                                                         <button
                                                             onClick={() => handleToggleAvailability(product)}
-                                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                                                                product.isAvailable
+                                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${product.isAvailable
                                                                     ? 'bg-green-100 text-green-800 hover:bg-green-200'
                                                                     : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {product.isAvailable ? 'Available' : 'Unavailable'}
                                                         </button>
@@ -816,11 +818,10 @@ export default function AdminDashboard() {
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={() => handleToggleAdmin(u._id)}
-                                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                                                u.isAdmin
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${u.isAdmin
                                                                     ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                                                                     : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                                                            }`}
+                                                                }`}
                                                             title={u.isAdmin ? 'Demote to User' : 'Promote to Admin'}
                                                         >
                                                             {u.isAdmin ? 'Remove Admin' : 'Make Admin'}

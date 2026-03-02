@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
-import { useCart } from '../context/CartContext'
+// removed useCart import
 
 const FOOD_EMOJI = ['🍛', '🥘', '🫕', '🍜', '🍲', '🥗', '🍱', '🫔']
 
 export default function Hero() {
-    const { setIsCartOpen } = useCart()
+    // removed unused useCart call
 
     return (
         <section
