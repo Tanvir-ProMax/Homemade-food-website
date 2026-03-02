@@ -102,24 +102,10 @@ export function AuthProvider({ children }) {
         }
     }
 
-    const login = async (email, password) => {
-        try {
-            const { data } = await api.post('/auth/login', { email, password })
-            if (data.token) setToken(data.token)
-            setUser({
-                name: data.name || name,
-                email: data.email || email,
-                isAdmin: data.isAdmin !== undefined ? data.isAdmin : false, // Use backend value if provided, else false
-            })
-            return { success: true }
-        } catch (error) {
-            console.error('Login error:', error)
-            // Handle different error scenarios
-            if (error.code === 'ECONNABORTED') {
-                return {
-                    success: false,
-                    message: 'Server is starting up. Please try again in a few seconds.'
-                }
+    const logout = () => {
+        removeToken()
+        setUser(null)
+    }
             }
             if (error.response) {
                 // Server responded with error
