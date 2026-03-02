@@ -15,6 +15,10 @@ dist-ssr
 
 # Environment variables
 Backend/.env
+.env
+.env.local
+.env.production.local
+JWT_SECRET.txt
 
 # Editor directories and files
 .vscode/*

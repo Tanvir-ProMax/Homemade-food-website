@@ -15,18 +15,87 @@ export default function OrderTracking() {
     const { id } = useParams()
     const { user } = useAuth()
 
-    // Mock tracking state. In real app, fetch from API.
+    // Fetch order data from API
+    const [order, setOrder] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
     const [currentStep, setCurrentStep] = useState(1)
 
-    // Simulate tracking updates
+    // Fetch order details
     useEffect(() => {
-        const timers = [
-            setTimeout(() => setCurrentStep(2), 3000), // Move to Preparing after 3s
-            setTimeout(() => setCurrentStep(3), 8000), // Move to On the Way after 8s
-            // We'll leave it at 'On the Way' for the demo to look active.
-        ]
-        return () => timers.forEach(clearTimeout)
-    }, [])
+        const fetchOrder = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/orders/${id}`)
+                if (!response.ok) {
+                    throw new Error('Order not found')
+                }
+                const data = await response.json()
+                setOrder(data)
+                
+                // Set current step based on order status
+                const statusToStep = {
+                    'Pending': 1,
+                    'Preparing': 2,
+                    'On the Way': 3,
+                    'Delivered': 4,
+                    'Cancelled': 0
+                }
+                setCurrentStep(statusToStep[data.status] || 1)
+            } catch (err) {
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchOrder()
+    }, [id])
+
+    // Simulate tracking updates for demo (remove in production)
+    useEffect(() => {
+        if (order && order.status === 'Pending') {
+            const timers = [
+                setTimeout(() => {
+                    setOrder(prev => ({ ...prev, status: 'Preparing' }))
+                    setCurrentStep(2)
+                }, 3000),
+                setTimeout(() => {
+                    setOrder(prev => ({ ...prev, status: 'On the Way' }))
+                    setCurrentStep(3)
+                }, 8000),
+            ]
+            return () => timers.forEach(clearTimeout)
+        }
+    }, [order])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen pt-24 pb-20 bg-[#fafaf9] flex items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-stone-600">Loading order details...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen pt-24 pb-20 bg-[#fafaf9] flex items-center justify-center p-4">
+                <div className="text-center bg-white rounded-3xl p-10 shadow-xl shadow-red-100/50 border border-red-100">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                        <FiPackage size={28} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-stone-800 mb-2">Order Not Found</h2>
+                    <p className="text-stone-500 mb-6">{error}</p>
+                    <Link to="/" className="inline-block px-6 py-3 bg-orange-500 text-white rounded-full font-bold">
+                        Return Home
+                    </Link>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen pt-24 pb-20 bg-[#fafaf9] flex items-center justify-center p-4">

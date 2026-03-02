@@ -2,7 +2,12 @@
 
 A full-stack MERN application for ordering homemade food online. Built with React, Express, MongoDB, and TailwindCSS.
 
-## Features
+## 🚀 Live Demo
+
+- **Frontend**: [Vercel Deployment](https://homemade-food.vercel.app) (Coming Soon)
+- **Backend API**: [Render Deployment](https://homemade-food-api.onrender.com) (Coming Soon)
+
+## 📋 Features
 
 - **User Authentication**: Login and register with JWT-based authentication
 - **Dynamic Menu**: Browse and filter through a variety of homemade food items

@@ -10,7 +10,7 @@ const removeToken = () => localStorage.removeItem('maria_auth_token')
 
 // Base api instance
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Adjust base URL as needed based on backend
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 })
 
 // Request interceptor to attach JWT
