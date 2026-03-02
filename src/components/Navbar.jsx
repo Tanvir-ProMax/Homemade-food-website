@@ -63,7 +63,7 @@ export default function Navbar() {
                         </div>
                     </Link>
 
-                    {/* Desktop Links */}
+                     {/* Desktop Links */}
                     <ul className="hidden md:flex items-center gap-7">
                         {navLinks.map(link => (
                             <li key={link.label}>
@@ -76,6 +76,19 @@ export default function Navbar() {
                                 </a>
                             </li>
                         ))}
+                        {user?.isAdmin && (
+                            <li>
+                                <Link
+                                    to="/dashboard"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors duration-200"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h2v1m4 1.414 1.414L3 5.414 1.414H5a4 4 4 4h12v1m0 4-1.414 1.414L21 5.414 5.414 5.414a2 2 2 0 00-4m-4 4-4 2 0-4m-8-8v-4h-8v-8h4v8h-2H9.414 2 2 0 4m-2 8-6v-2h-2zm-2-2 2 0 004zm6.916-1.875a4.001 4.001 0-6 2.625l-1.688-1.688a3 3 3 0-1.838-7.938-7.938l-1.688-1.688a1 3 3 0-1.838 7.938-7.938-4.001 4.001-6.625l1.688-1.688A3 3 0 1.838 0l1.688 1.688 7.938 0-6.625L15 2.75a2.002 4 002-.838.097-.624.062-.724.5-1.838-7.938a.003 4.001-6.625l1.688 1.688-7.938-.624-.724.062-1.838 1.688l-1.688-1.688a1 3 3 0-1.838-0z" />
+                                    </svg>
+                                    Dashboard
+                                </Link>
+                            </li>
+                        )}
                     </ul>
 
                     <div className="flex items-center gap-3">
@@ -181,21 +194,19 @@ export default function Navbar() {
                                         </a>
                                     </li>
                                 ))}
-                                {user ? (
-                                    <button
-                                        onClick={handleLogout}
-                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-red-600 bg-red-50 text-sm font-semibold shadow-sm mt-2"
-                                    >
-                                        <FiLogOut /> Logout ({user.name})
-                                    </button>
-                                ) : (
-                                    <Link
-                                        to="/login"
-                                        onClick={() => setMobileOpen(false)}
-                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-semibold shimmer-btn shadow-md mt-2"
-                                    >
-                                        Sign In
-                                    </Link>
+                                {user?.isAdmin && (
+                                    <li>
+                                        <Link
+                                            to="/dashboard"
+                                            onClick={() => setMobileOpen(false)}
+                                            className="text-stone-700 hover:text-orange-500 font-medium text-base transition-colors flex items-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h2v1m4 1.414 1.414L3 5.414 1.414H5a4 4 4 4h12v1m0 4-1.414 1.414L21 5.414 5.414a2 2 2 0 00-4m-4 4-4 2 0-4m-8-8v-4h-8v-8h4v8h-2H9.414 2 2 0 4m-2 8-6v-2h-2zm-2-2 2 0 004zm6.916-1.875a4.001 4.001 0-6 2.625l-1.688-1.688a3 3 3 0-1.838-7.938l-1.688-1.688a1 3 3 0-1.838 0l1.688 1.688 7.938 0-6.625L15 2.75a2.002 4.002-.838.097-.624.062-.724.5-1.838-7.938a.003 4.001-6.625l1.688 1.688-7.938-.624-.724.062-1.838 1.688l-1.688 1.688a1 3 3 0-1.838-0z" />
+                                            </svg>
+                                            Admin Dashboard
+                                        </Link>
+                                    </li>
                                 )}
                             </ul>
                         </motion.div>

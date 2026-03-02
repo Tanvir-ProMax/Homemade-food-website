@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { CartProvider } from './context/CartContext'
+import { CartProvider } from './context/cartContext'
 import { ToastProvider } from './context/ToastContext'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import Menu from './components/Menu'
@@ -14,6 +14,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Checkout from './pages/Checkout'
 import OrderTracking from './pages/OrderTracking'
+import AdminDashboard from './pages/AdminDashboard'
 
 function HomePage() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
                   <Route path="/register" element={<Register />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/tracking/:id" element={<OrderTracking />} />
+                  <Route path="/dashboard" element={<AdminDashboard />} />
                 </Routes>
               </main>
               <Footer />

@@ -27,6 +27,10 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
+        // Check if this is the first user (make admin)
+        const userCount = await User.countDocuments();
+        const isFirstUser = userCount === 0;
+
         // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -36,6 +40,7 @@ const registerUser = async (req, res) => {
             name,
             email,
             password: hashedPassword,
+            isAdmin: isFirstUser, // First user becomes admin
         });
 
         if (user) {
@@ -43,6 +48,7 @@ const registerUser = async (req, res) => {
                 _id: user.id,
                 name: user.name,
                 email: user.email,
+                isAdmin: user.isAdmin,
                 token: generateToken(user._id),
             });
         } else {
