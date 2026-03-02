@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FiBox, FiShoppingCart, FiUsers, FiTrendingUp, FiCheckCircle, FiX, FiRefreshCw, FiLogOut, FiEye, FiEdit, FiTrash2, FiSearch, FiPlus, FiPackage } from 'react-icons/fi'
+import { FiBox, FiShoppingCart, FiUsers, FiTrendingUp, FiCheckCircle, FiX, FiRefreshCw, FiLogOut, FiEye, FiEdit, FiTrash2, FiSearch, FiPlus, FiPackage, FiUploadCloud, FiImage } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
@@ -39,6 +39,9 @@ export default function AdminDashboard() {
     const [editingProduct, setEditingProduct] = useState(null)
     const [showProductModal, setShowProductModal] = useState(false)
     const [productLoading, setProductLoading] = useState(false)
+    const [imageFile, setImageFile] = useState(null)
+    const [imagePreview, setImagePreview] = useState(null)
+    const [uploadingImage, setUploadingImage] = useState(false)
 
     // Fetch stats on load
     useEffect(() => {
@@ -196,6 +199,8 @@ export default function AdminDashboard() {
     const openAddProduct = () => {
         setEditingProduct(null)
         setProductForm({ ...emptyProductForm })
+        setImageFile(null)
+        setImagePreview(null)
         setShowProductModal(true)
     }
 
@@ -212,6 +217,8 @@ export default function AdminDashboard() {
             tag: product.tag || '',
             isAvailable: product.isAvailable,
         })
+        setImageFile(null)
+        setImagePreview(product.image || null)
         setShowProductModal(true)
     }
 
@@ -223,11 +230,55 @@ export default function AdminDashboard() {
         }))
     }
 
+    const handleImageFileChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                addToast({ message: 'Image must be under 5MB' })
+                return
+            }
+            setImageFile(file)
+            setImagePreview(URL.createObjectURL(file))
+        }
+    }
+
+    const uploadImage = async () => {
+        if (!imageFile) return productForm.image
+
+        setUploadingImage(true)
+        try {
+            const formData = new FormData()
+            formData.append('image', imageFile)
+
+            const response = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            return response.data.url
+        } catch (error) {
+            console.error('Image upload error:', error)
+            throw new Error('Failed to upload image')
+        } finally {
+            setUploadingImage(false)
+        }
+    }
+
     const handleSaveProduct = async (e) => {
         e.preventDefault()
         try {
+            // Upload image first if a new file was selected
+            let imageUrl = productForm.image
+            if (imageFile) {
+                imageUrl = await uploadImage()
+            }
+
+            if (!imageUrl) {
+                addToast({ message: 'Please upload a product image' })
+                return
+            }
+
             const payload = {
                 ...productForm,
+                image: imageUrl,
                 price: Number(productForm.price),
                 rating: Number(productForm.rating),
                 reviews: Number(productForm.reviews),
@@ -244,6 +295,8 @@ export default function AdminDashboard() {
             setShowProductModal(false)
             setEditingProduct(null)
             setProductForm({ ...emptyProductForm })
+            setImageFile(null)
+            setImagePreview(null)
             fetchProducts()
             fetchStats()
         } catch (error) {
@@ -971,18 +1024,46 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
 
-                            {/* Image URL */}
+                            {/* Image Upload */}
                             <div>
-                                <label className="block text-sm font-medium text-stone-700 mb-1">Image URL *</label>
-                                <input
-                                    type="text"
-                                    name="image"
-                                    value={productForm.image}
-                                    onChange={handleProductFormChange}
-                                    required
-                                    className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                                    placeholder="e.g. /chicken_biryani.png or https://..."
-                                />
+                                <label className="block text-sm font-medium text-stone-700 mb-1">Product Image *</label>
+                                <div className="flex gap-4 items-start">
+                                    {/* Preview */}
+                                    <div className="w-24 h-24 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        {imagePreview ? (
+                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                                        ) : (
+                                            <FiImage className="text-stone-300" size={32} />
+                                        )}
+                                    </div>
+                                    {/* Upload area */}
+                                    <div className="flex-1">
+                                        <label className="flex flex-col items-center justify-center w-full py-4 px-4 rounded-lg border-2 border-dashed border-orange-200 bg-orange-50/50 hover:bg-orange-50 cursor-pointer transition-colors">
+                                            <FiUploadCloud className="text-orange-400 mb-1" size={24} />
+                                            <span className="text-sm font-medium text-stone-600">
+                                                {imageFile ? imageFile.name : 'Click to upload image'}
+                                            </span>
+                                            <span className="text-xs text-stone-400 mt-0.5">JPEG, PNG, WebP up to 5MB</span>
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                                onChange={handleImageFileChange}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        {/* Or paste URL fallback */}
+                                        <div className="mt-2">
+                                            <input
+                                                type="text"
+                                                name="image"
+                                                value={productForm.image}
+                                                onChange={handleProductFormChange}
+                                                className="w-full px-3 py-1.5 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-xs"
+                                                placeholder="Or paste image URL directly..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Description */}
@@ -1067,9 +1148,17 @@ export default function AdminDashboard() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2.5 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors shadow-md"
+                                    disabled={uploadingImage}
+                                    className="px-6 py-2.5 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
-                                    {editingProduct ? 'Update Product' : 'Create Product'}
+                                    {uploadingImage ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Uploading...
+                                        </>
+                                    ) : (
+                                        editingProduct ? 'Update Product' : 'Create Product'
+                                    )}
                                 </button>
                             </div>
                         </form>
