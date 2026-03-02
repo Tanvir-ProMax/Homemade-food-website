@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { memoryStorage } = require('multer');
+const multer = require('multer');
 const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { r2Client } = require('../config/r2');
 const { protect } = require('../middleware/authMiddleware');
@@ -8,7 +8,7 @@ const { adminProtect } = require('../middleware/adminMiddleware');
 
 // Multer config — store in memory, limit 5MB, images only
 const upload = multer({
-    storage: memoryStorage(),
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: (req, file, cb) => {
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
