@@ -9,22 +9,12 @@ const app = express();
 // Connect to Database
 connectDB();
 
-// Middleware
-const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'https://homemade-food.vercel.app',
-    'https://*.vercel.app'
-];
-
+// Middleware - Simple CORS configuration for all origins (for testing)
 app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.some(allowed => origin.includes(allowed.replace('*', '')))) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
+    origin: '*', // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
