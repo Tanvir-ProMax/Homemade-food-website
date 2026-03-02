@@ -33,6 +33,33 @@ export function AuthProvider({ children }) {
         setLoading(false)
     }, [])
 
+    // On mount, check if token exists and restore user session
+    useEffect(() => {
+        const token = getToken()
+        if (token) {
+            // In a real app we'd verify token with /api/auth/me
+            // For now, set user from token if possible, or create minimal user
+            // Try to decode token to get user info (basic approach)
+            try {
+                const decoded = JSON.parse(atob(token.split('.')[1] || ''))
+                setUser({
+                    name: decoded.name || 'User',
+                    email: decoded.email || email,
+                    isAdmin: decoded.isAdmin || false,
+                })
+            } catch (error) {
+                // If decoding fails, still set minimal user so app works
+                console.log('Token decode failed, setting minimal user')
+                setUser({
+                    name: 'User',
+                    email: token,
+                    isAdmin: false,
+                })
+            }
+        }
+        setLoading(false)
+    }, [])
+
     const register = async (name, email, password) => {
         try {
             const { data } = await api.post('/auth/register', { name, email, password })
@@ -80,9 +107,9 @@ export function AuthProvider({ children }) {
             const { data } = await api.post('/auth/login', { email, password })
             if (data.token) setToken(data.token)
             setUser({
-                name: data.name || 'Foodie',
-                email: email,
-                isAdmin: data.isAdmin || false,
+                name: data.name || name,
+                email: data.email || email,
+                isAdmin: data.isAdmin !== undefined ? data.isAdmin : false, // Use backend value if provided, else false
             })
             return { success: true }
         } catch (error) {
