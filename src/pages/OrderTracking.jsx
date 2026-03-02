@@ -129,8 +129,11 @@ export default function OrderTracking() {
                             </div>
                             <div>
                                 <p className="text-xs font-bold text-stone-400 uppercase tracking-wide">Delivering to</p>
-                                <p className="text-sm font-semibold text-stone-800 mt-0.5">{user?.name || 'Guest User'}</p>
-                                <p className="text-xs text-stone-500 mt-0.5">Your Saved Address</p>
+                                <p className="text-sm font-semibold text-stone-800 mt-0.5">{order?.deliveryDetails?.fullName || user?.name || 'Guest User'}</p>
+                                <p className="text-xs text-stone-500 mt-0.5">{order?.deliveryDetails?.address || 'Address not available'}</p>
+                                {order?.deliveryDetails?.phone && (
+                                    <p className="text-xs text-stone-500 mt-0.5">{order.deliveryDetails.phone}</p>
+                                )}
                             </div>
                         </div>
                         <div className="w-px h-10 bg-stone-200 hidden md:block" />

@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { FiBox, FiShoppingCart, FiUsers, FiTrendingUp, FiCheckCircle, FiX, FiRefreshCw, FiLogOut, FiEye, FiEdit, FiTrash2, FiFilter, FiSearch, FiMenu } from 'react-icons/fi'
+import { useNavigate } from 'react-router-dom'
+import { FiBox, FiShoppingCart, FiUsers, FiTrendingUp, FiCheckCircle, FiX, FiRefreshCw, FiLogOut, FiEye, FiEdit, FiTrash2, FiSearch, FiPlus, FiPackage } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-})
+const PRODUCT_CATEGORIES = ['Rice', 'Chicken', 'Beef', 'Snacks', 'Desserts']
+const PRODUCT_TAGS = ['', 'Bestseller', 'Special', 'Chef Pick']
+
+const emptyProductForm = {
+    name: '',
+    category: 'Rice',
+    price: '',
+    image: '',
+    description: '',
+    rating: 0,
+    reviews: 0,
+    tag: '',
+    isAvailable: true,
+}
 
 export default function AdminDashboard() {
-    const { user, api } = useAuth()
+    const { user, api, logout } = useAuth()
     const { addToast } = useToast()
     const navigate = useNavigate()
 
@@ -25,6 +33,13 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
     const [selectedOrder, setSelectedOrder] = useState(null)
 
+    // Products state
+    const [products, setProducts] = useState([])
+    const [productForm, setProductForm] = useState({ ...emptyProductForm })
+    const [editingProduct, setEditingProduct] = useState(null)
+    const [showProductModal, setShowProductModal] = useState(false)
+    const [productLoading, setProductLoading] = useState(false)
+
     // Fetch stats on load
     useEffect(() => {
         fetchStats()
@@ -35,10 +50,17 @@ export default function AdminDashboard() {
         fetchOrders()
     }, [statusFilter, searchTerm])
 
-    // Fetch users on load
+    // Fetch users on tab switch
     useEffect(() => {
         if (activeTab === 'users') {
             fetchUsers()
+        }
+    }, [activeTab])
+
+    // Fetch products on tab switch
+    useEffect(() => {
+        if (activeTab === 'products') {
+            fetchProducts()
         }
     }, [activeTab])
 
@@ -64,7 +86,6 @@ export default function AdminDashboard() {
             }
 
             if (searchTerm) {
-                // Note: Backend would need to implement search
                 params.search = searchTerm
             }
 
@@ -89,11 +110,24 @@ export default function AdminDashboard() {
         }
     }
 
+    const fetchProducts = async () => {
+        setProductLoading(true)
+        try {
+            const response = await api.get('/admin/products')
+            setProducts(response.data)
+        } catch (error) {
+            console.error('Error fetching products:', error)
+        } finally {
+            setProductLoading(false)
+        }
+    }
+
     const handleUpdateStatus = async (orderId, newStatus) => {
         try {
             await api.put(`/admin/orders/${orderId}/status`, { status: newStatus })
             addToast({ message: `Order updated to ${newStatus}` })
             fetchOrders()
+            fetchStats()
         } catch (error) {
             console.error('Error updating status:', error)
             addToast({ message: 'Failed to update order status' })
@@ -106,6 +140,7 @@ export default function AdminDashboard() {
                 await api.delete(`/admin/orders/${orderId}`)
                 addToast({ message: 'Order cancelled successfully' })
                 fetchOrders()
+                fetchStats()
             } catch (error) {
                 console.error('Error cancelling order:', error)
                 addToast({ message: 'Failed to cancel order' })
@@ -120,13 +155,125 @@ export default function AdminDashboard() {
     const handleRefresh = () => {
         fetchOrders()
         fetchStats()
+        if (activeTab === 'products') fetchProducts()
+        if (activeTab === 'users') fetchUsers()
         addToast({ message: 'Data refreshed' })
     }
 
     const handleLogout = () => {
         if (window.confirm('Are you sure you want to logout?')) {
-            localStorage.clear()
-            window.location.href = '/'
+            logout()
+            navigate('/')
+        }
+    }
+
+    // ── User management ──
+    const handleToggleAdmin = async (userId) => {
+        try {
+            const response = await api.put(`/admin/users/${userId}/toggle-admin`)
+            addToast({ message: `User role updated: ${response.data.isAdmin ? 'Admin' : 'User'}` })
+            fetchUsers()
+        } catch (error) {
+            console.error('Error toggling admin:', error)
+            addToast({ message: error.response?.data?.message || 'Failed to update user role' })
+        }
+    }
+
+    const handleDeleteUser = async (userId, userName) => {
+        if (window.confirm(`Are you sure you want to delete user "${userName}"?`)) {
+            try {
+                await api.delete(`/admin/users/${userId}`)
+                addToast({ message: 'User deleted successfully' })
+                fetchUsers()
+            } catch (error) {
+                console.error('Error deleting user:', error)
+                addToast({ message: error.response?.data?.message || 'Failed to delete user' })
+            }
+        }
+    }
+
+    // ── Product management ──
+    const openAddProduct = () => {
+        setEditingProduct(null)
+        setProductForm({ ...emptyProductForm })
+        setShowProductModal(true)
+    }
+
+    const openEditProduct = (product) => {
+        setEditingProduct(product)
+        setProductForm({
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            image: product.image,
+            description: product.description,
+            rating: product.rating || 0,
+            reviews: product.reviews || 0,
+            tag: product.tag || '',
+            isAvailable: product.isAvailable,
+        })
+        setShowProductModal(true)
+    }
+
+    const handleProductFormChange = (e) => {
+        const { name, value, type, checked } = e.target
+        setProductForm(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value,
+        }))
+    }
+
+    const handleSaveProduct = async (e) => {
+        e.preventDefault()
+        try {
+            const payload = {
+                ...productForm,
+                price: Number(productForm.price),
+                rating: Number(productForm.rating),
+                reviews: Number(productForm.reviews),
+            }
+
+            if (editingProduct) {
+                await api.put(`/admin/products/${editingProduct._id}`, payload)
+                addToast({ message: 'Product updated successfully' })
+            } else {
+                await api.post('/admin/products', payload)
+                addToast({ message: 'Product created successfully' })
+            }
+
+            setShowProductModal(false)
+            setEditingProduct(null)
+            setProductForm({ ...emptyProductForm })
+            fetchProducts()
+            fetchStats()
+        } catch (error) {
+            console.error('Error saving product:', error)
+            addToast({ message: error.response?.data?.message || 'Failed to save product' })
+        }
+    }
+
+    const handleDeleteProduct = async (productId, productName) => {
+        if (window.confirm(`Are you sure you want to delete "${productName}"?`)) {
+            try {
+                await api.delete(`/admin/products/${productId}`)
+                addToast({ message: 'Product deleted successfully' })
+                fetchProducts()
+                fetchStats()
+            } catch (error) {
+                console.error('Error deleting product:', error)
+                addToast({ message: 'Failed to delete product' })
+            }
+        }
+    }
+
+    const handleToggleAvailability = async (product) => {
+        try {
+            await api.put(`/admin/products/${product._id}`, { isAvailable: !product.isAvailable })
+            addToast({ message: `${product.name} is now ${!product.isAvailable ? 'available' : 'unavailable'}` })
+            fetchProducts()
+        } catch (error) {
+            console.error('Error toggling availability:', error)
+            addToast({ message: 'Failed to update product' })
         }
     }
 
@@ -178,42 +325,30 @@ export default function AdminDashboard() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Tabs */}
                 <div className="flex gap-2 mb-6 overflow-x-auto">
-                    <button
-                        onClick={() => setActiveTab('orders')}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                            activeTab === 'orders'
-                                ? 'bg-orange-500 text-white shadow-lg'
-                                : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-                        }`}
-                    >
-                        <FiShoppingCart size={20} />
-                        Orders
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('users')}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                            activeTab === 'users'
-                                ? 'bg-orange-500 text-white shadow-lg'
-                                : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-                        }`}
-                    >
-                        <FiUsers size={20} />
-                        Users
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('stats')}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                            activeTab === 'stats'
-                                ? 'bg-orange-500 text-white shadow-lg'
-                                : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-                        }`}
-                    >
-                        <FiTrendingUp size={20} />
-                        Statistics
-                    </button>
+                    {[
+                        { key: 'orders', label: 'Orders', icon: FiShoppingCart },
+                        { key: 'products', label: 'Products', icon: FiPackage },
+                        { key: 'users', label: 'Users', icon: FiUsers },
+                        { key: 'stats', label: 'Statistics', icon: FiTrendingUp },
+                    ].map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${
+                                activeTab === tab.key
+                                    ? 'bg-orange-500 text-white shadow-lg'
+                                    : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
+                            }`}
+                        >
+                            <tab.icon size={20} />
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Orders Tab */}
+                {/* ════════════════════════════════════════════════════════════
+                    ORDERS TAB
+                ════════════════════════════════════════════════════════════ */}
                 {activeTab === 'orders' && (
                     <div className="space-y-6">
                         {/* Filters */}
@@ -224,7 +359,7 @@ export default function AdminDashboard() {
                                     <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
                                     <input
                                         type="text"
-                                        placeholder="Search orders..."
+                                        placeholder="Search by customer name or phone..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="w-full pl-10 pr-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -284,15 +419,15 @@ export default function AdminDashboard() {
                                                 <tr key={order._id} className="border-b border-stone-200 hover:bg-orange-50/50 transition-colors">
                                                     <td className="px-6 py-4 text-sm font-medium text-stone-900">{order._id.slice(-8)}</td>
                                                     <td className="px-6 py-4 text-sm">
-                                                        <div className="text-stone-700">{order.name}</div>
-                                                        <div className="text-xs text-stone-500">{order.phone}</div>
+                                                        <div className="text-stone-700">{order.deliveryDetails?.fullName || 'N/A'}</div>
+                                                        <div className="text-xs text-stone-500">{order.deliveryDetails?.phone || ''}</div>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
                                                             {order.status}
                                                         </span>
                                                     </td>
-                                                     <td className="px-6 py-4 text-sm font-semibold text-stone-900">৳{order.totalPrice || 0}</td>
+                                                    <td className="px-6 py-4 text-sm font-semibold text-stone-900">৳{order.totalPrice || 0}</td>
                                                     <td className="px-6 py-4 text-sm text-stone-600">
                                                         {new Date(order.createdAt).toLocaleDateString()}
                                                     </td>
@@ -301,6 +436,7 @@ export default function AdminDashboard() {
                                                             <button
                                                                 onClick={() => handleViewOrder(order)}
                                                                 className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                                                                title="View Details"
                                                             >
                                                                 <FiEye size={16} />
                                                             </button>
@@ -313,7 +449,16 @@ export default function AdminDashboard() {
                                                                     <FiCheckCircle size={16} />
                                                                 </button>
                                                             )}
-                                                            {(order.status === 'Preparing' || order.status === 'On Way') && (
+                                                            {order.status === 'Preparing' && (
+                                                                <button
+                                                                    onClick={() => handleUpdateStatus(order._id, 'On Way')}
+                                                                    className="p-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+                                                                    title="Mark as On Way"
+                                                                >
+                                                                    <FiCheckCircle size={16} />
+                                                                </button>
+                                                            )}
+                                                            {order.status === 'On Way' && (
                                                                 <button
                                                                     onClick={() => handleUpdateStatus(order._id, 'Delivered')}
                                                                     className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
@@ -322,7 +467,7 @@ export default function AdminDashboard() {
                                                                     <FiCheckCircle size={16} />
                                                                 </button>
                                                             )}
-                                                            {!order.isDelivered && (
+                                                            {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
                                                                 <button
                                                                     onClick={() => handleCancelOrder(order._id)}
                                                                     className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
@@ -343,7 +488,123 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* Stats Tab */}
+                {/* ════════════════════════════════════════════════════════════
+                    PRODUCTS TAB
+                ════════════════════════════════════════════════════════════ */}
+                {activeTab === 'products' && (
+                    <div className="space-y-6">
+                        {/* Header with Add button */}
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-stone-800">Manage Products</h2>
+                            <button
+                                onClick={openAddProduct}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors shadow-md"
+                            >
+                                <FiPlus size={18} />
+                                Add Product
+                            </button>
+                        </div>
+
+                        {/* Products Table */}
+                        <div className="bg-white rounded-xl shadow-sm border border-orange-100 overflow-hidden">
+                            {productLoading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                                </div>
+                            ) : products.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="text-6xl mb-4">🍽️</div>
+                                    <p className="text-stone-600">No products yet</p>
+                                    <button
+                                        onClick={openAddProduct}
+                                        className="mt-4 px-5 py-2 rounded-full bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
+                                    >
+                                        Add your first product
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-stone-50 border-b border-stone-200">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-stone-600 uppercase tracking-wider">Product</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-stone-600 uppercase tracking-wider">Category</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-stone-600 uppercase tracking-wider">Price</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-stone-600 uppercase tracking-wider">Tag</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-stone-600 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-bold text-stone-600 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {products.map((product) => (
+                                                <tr key={product._id} className="border-b border-stone-200 hover:bg-orange-50/50 transition-colors">
+                                                    <td className="px-6 py-4 text-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <img
+                                                                src={product.image}
+                                                                alt={product.name}
+                                                                className="w-10 h-10 rounded-lg object-cover bg-orange-50"
+                                                            />
+                                                            <div>
+                                                                <div className="font-medium text-stone-900">{product.name}</div>
+                                                                <div className="text-xs text-stone-500 line-clamp-1 max-w-[200px]">{product.description}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-stone-700">{product.category}</td>
+                                                    <td className="px-6 py-4 text-sm font-semibold text-stone-900">৳{product.price}</td>
+                                                    <td className="px-6 py-4">
+                                                        {product.tag ? (
+                                                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                                                                {product.tag}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-stone-400">None</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <button
+                                                            onClick={() => handleToggleAvailability(product)}
+                                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                                                product.isAvailable
+                                                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                                            }`}
+                                                        >
+                                                            {product.isAvailable ? 'Available' : 'Unavailable'}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => openEditProduct(product)}
+                                                                className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                                                                title="Edit Product"
+                                                            >
+                                                                <FiEdit size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteProduct(product._id, product.name)}
+                                                                className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                                title="Delete Product"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ════════════════════════════════════════════════════════════
+                    STATS TAB
+                ════════════════════════════════════════════════════════════ */}
                 {activeTab === 'stats' && stats && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Total Orders */}
@@ -410,10 +671,51 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Total Products */}
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-orange-100">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-lg bg-amber-100 text-amber-600">
+                                    <FiPackage size={32} />
+                                </div>
+                                <div>
+                                    <p className="text-3xl font-bold text-stone-800">{stats.totalProducts}</p>
+                                    <p className="text-sm text-stone-600">Total Products</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Available Products */}
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-orange-100">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-lg bg-teal-100 text-teal-600">
+                                    <FiCheckCircle size={32} />
+                                </div>
+                                <div>
+                                    <p className="text-3xl font-bold text-stone-800">{stats.availableProducts}</p>
+                                    <p className="text-sm text-stone-600">Available Products</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cancelled Orders */}
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-orange-100">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 rounded-lg bg-red-100 text-red-600">
+                                    <FiX size={32} />
+                                </div>
+                                <div>
+                                    <p className="text-3xl font-bold text-stone-800">{stats.cancelledOrders}</p>
+                                    <p className="text-sm text-stone-600">Cancelled Orders</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
-                {/* Users Tab */}
+                {/* ════════════════════════════════════════════════════════════
+                    USERS TAB
+                ════════════════════════════════════════════════════════════ */}
                 {activeTab === 'users' && (
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-orange-100 overflow-hidden">
                         {loading ? (
@@ -438,33 +740,48 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {users.map((user) => (
-                                            <tr key={user._id} className="border-b border-stone-200 hover:bg-orange-50/50">
+                                        {users.map((u) => (
+                                            <tr key={u._id} className="border-b border-stone-200 hover:bg-orange-50/50">
                                                 <td className="px-6 py-4 text-sm font-medium text-stone-900">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm">
-                                                            {user.name?.charAt(0) || 'U'}
+                                                            {u.name?.charAt(0) || 'U'}
                                                         </div>
-                                                        {user.name}
+                                                        {u.name}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-stone-600">{user.email}</td>
+                                                <td className="px-6 py-4 text-sm text-stone-600">{u.email}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-stone-100 text-stone-800'}`}>
-                                                        {user.isAdmin ? 'Admin' : 'User'}
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${u.isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-stone-100 text-stone-800'}`}>
+                                                        {u.isAdmin ? 'Admin' : 'User'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-stone-600">
-                                                    {new Date(user.createdAt).toLocaleDateString()}
+                                                    {new Date(u.createdAt).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    {user.isAdmin ? (
-                                                        <span className="text-xs text-stone-500 italic">Cannot edit</span>
-                                                    ) : (
-                                                        <button className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
-                                                            <FiEdit size={16} />
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleToggleAdmin(u._id)}
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                                                u.isAdmin
+                                                                    ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                                                                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                                            }`}
+                                                            title={u.isAdmin ? 'Demote to User' : 'Promote to Admin'}
+                                                        >
+                                                            {u.isAdmin ? 'Remove Admin' : 'Make Admin'}
                                                         </button>
-                                                    )}
+                                                        {!u.isAdmin && (
+                                                            <button
+                                                                onClick={() => handleDeleteUser(u._id, u.name)}
+                                                                className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                                title="Delete User"
+                                                            >
+                                                                <FiTrash2 size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -476,7 +793,9 @@ export default function AdminDashboard() {
                 )}
             </div>
 
-            {/* Order Details Modal */}
+            {/* ════════════════════════════════════════════════════════════
+                ORDER DETAILS MODAL
+            ════════════════════════════════════════════════════════════ */}
             {selectedOrder && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
@@ -507,39 +826,65 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm text-stone-600 font-medium">Customer Name</p>
-                                    <p className="text-lg font-bold text-stone-900">{selectedOrder.name}</p>
+                                    <p className="text-lg font-bold text-stone-900">{selectedOrder.deliveryDetails?.fullName || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-stone-600 font-medium">Phone</p>
-                                    <p className="text-lg font-bold text-stone-900">{selectedOrder.phone}</p>
+                                    <p className="text-lg font-bold text-stone-900">{selectedOrder.deliveryDetails?.phone || 'N/A'}</p>
                                 </div>
                             </div>
 
                             <div>
                                 <p className="text-sm text-stone-600 font-medium">Address</p>
-                                <p className="text-lg font-bold text-stone-900">{selectedOrder.address}</p>
+                                <p className="text-lg font-bold text-stone-900">{selectedOrder.deliveryDetails?.address || 'N/A'}</p>
                             </div>
 
                             <div>
                                 <p className="text-sm text-stone-600 font-medium">Order Note</p>
-                                <p className="text-lg font-bold text-stone-900">{selectedOrder.note || 'No note'}</p>
+                                <p className="text-lg font-bold text-stone-900">{selectedOrder.deliveryDetails?.orderNote || 'No note'}</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-sm text-stone-600 font-medium">Order Items</p>
+                                    <p className="text-sm text-stone-600 font-medium">Payment Method</p>
+                                    <p className="text-lg font-bold text-stone-900">{selectedOrder.paymentMethod || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-stone-600 font-medium">Total</p>
-                                    <p className="text-lg font-bold text-stone-900">৳{selectedOrder.grandTotal}</p>
+                                    <p className="text-lg font-bold text-stone-900">৳{selectedOrder.totalPrice}</p>
+                                </div>
+                            </div>
+
+                            {/* Price breakdown */}
+                            <div className="bg-orange-50 rounded-lg p-4 space-y-1">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-stone-600">Items Price</span>
+                                    <span className="font-medium text-stone-800">৳{selectedOrder.itemsPrice}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-stone-600">Delivery Fee</span>
+                                    <span className="font-medium text-stone-800">৳{selectedOrder.deliveryFee}</span>
+                                </div>
+                                {selectedOrder.discount > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-stone-600">Discount</span>
+                                        <span className="font-medium text-green-600">-৳{selectedOrder.discount}</span>
+                                    </div>
+                                )}
+                                <div className="border-t border-orange-200 pt-1 flex justify-between text-sm font-bold">
+                                    <span className="text-stone-800">Grand Total</span>
+                                    <span className="text-stone-900">৳{selectedOrder.totalPrice}</span>
                                 </div>
                             </div>
 
                             <div className="bg-stone-50 rounded-lg p-4">
                                 <h3 className="text-sm font-bold text-stone-800 mb-2">Order Items</h3>
-                                {selectedOrder.items?.map((item, index) => (
+                                {selectedOrder.orderItems?.map((item, index) => (
                                     <div key={index} className="flex justify-between items-center py-2 border-b border-stone-200 last:border-0">
                                         <div className="flex items-center gap-3">
+                                            {item.image && (
+                                                <img src={item.image} alt={item.name} className="w-8 h-8 rounded object-cover" />
+                                            )}
                                             <span className="text-stone-700 font-medium">{item.name}</span>
                                             <span className="text-stone-500">x {item.qty}</span>
                                         </div>
@@ -559,6 +904,175 @@ export default function AdminDashboard() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════
+                PRODUCT ADD/EDIT MODAL
+            ════════════════════════════════════════════════════════════ */}
+            {showProductModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto mx-4">
+                        <div className="flex justify-between items-center p-6 border-b border-stone-200">
+                            <h2 className="text-xl font-bold text-stone-800">
+                                {editingProduct ? 'Edit Product' : 'Add New Product'}
+                            </h2>
+                            <button
+                                onClick={() => setShowProductModal(false)}
+                                className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
+                            >
+                                <FiX size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveProduct} className="p-6 space-y-4">
+                            {/* Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-stone-700 mb-1">Product Name *</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={productForm.name}
+                                    onChange={handleProductFormChange}
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    placeholder="e.g. Chicken Biryani"
+                                />
+                            </div>
+
+                            {/* Category + Price row */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-700 mb-1">Category *</label>
+                                    <select
+                                        name="category"
+                                        value={productForm.category}
+                                        onChange={handleProductFormChange}
+                                        className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                                    >
+                                        {PRODUCT_CATEGORIES.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-700 mb-1">Price (BDT) *</label>
+                                    <input
+                                        type="number"
+                                        name="price"
+                                        value={productForm.price}
+                                        onChange={handleProductFormChange}
+                                        required
+                                        min="0"
+                                        className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                        placeholder="e.g. 350"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Image URL */}
+                            <div>
+                                <label className="block text-sm font-medium text-stone-700 mb-1">Image URL *</label>
+                                <input
+                                    type="text"
+                                    name="image"
+                                    value={productForm.image}
+                                    onChange={handleProductFormChange}
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    placeholder="e.g. /chicken_biryani.png or https://..."
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm font-medium text-stone-700 mb-1">Description *</label>
+                                <textarea
+                                    name="description"
+                                    value={productForm.description}
+                                    onChange={handleProductFormChange}
+                                    required
+                                    rows={3}
+                                    className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+                                    placeholder="Describe this dish..."
+                                />
+                            </div>
+
+                            {/* Rating + Reviews row */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-700 mb-1">Rating (0-5)</label>
+                                    <input
+                                        type="number"
+                                        name="rating"
+                                        value={productForm.rating}
+                                        onChange={handleProductFormChange}
+                                        min="0"
+                                        max="5"
+                                        step="0.1"
+                                        className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-700 mb-1">Reviews Count</label>
+                                    <input
+                                        type="number"
+                                        name="reviews"
+                                        value={productForm.reviews}
+                                        onChange={handleProductFormChange}
+                                        min="0"
+                                        className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Tag + Available row */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-700 mb-1">Tag</label>
+                                    <select
+                                        name="tag"
+                                        value={productForm.tag}
+                                        onChange={handleProductFormChange}
+                                        className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                                    >
+                                        {PRODUCT_TAGS.map(tag => (
+                                            <option key={tag} value={tag}>{tag || 'None'}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-end">
+                                    <label className="flex items-center gap-3 cursor-pointer py-2">
+                                        <input
+                                            type="checkbox"
+                                            name="isAvailable"
+                                            checked={productForm.isAvailable}
+                                            onChange={handleProductFormChange}
+                                            className="w-5 h-5 rounded border-stone-300 text-orange-500 focus:ring-orange-400"
+                                        />
+                                        <span className="text-sm font-medium text-stone-700">Available for order</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Submit */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-stone-200">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowProductModal(false)}
+                                    className="px-6 py-2.5 rounded-lg border border-stone-200 text-stone-700 hover:bg-stone-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2.5 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors shadow-md"
+                                >
+                                    {editingProduct ? 'Update Product' : 'Create Product'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { addOrderItems, getOrderById, updateOrderStatus } = require('../controllers/orderController');
-// Optional: import { protect } from '../middleware/authMiddleware' if you want orders to be strictly authenticated
+const { optionalAuth, protect } = require('../middleware/authMiddleware');
 
-router.post('/', addOrderItems);
+// POST /api/orders — create order (guests allowed, attaches user if logged in)
+router.post('/', optionalAuth, addOrderItems);
+
+// GET /api/orders/:id — view order by ID (public for tracking page)
 router.get('/:id', getOrderById);
-router.put('/:id/status', updateOrderStatus);
+
+// PUT /api/orders/:id/status — update status (requires authentication)
+router.put('/:id/status', protect, updateOrderStatus);
 
 module.exports = router;

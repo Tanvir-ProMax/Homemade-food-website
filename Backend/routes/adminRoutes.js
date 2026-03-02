@@ -6,32 +6,37 @@ const {
     updateOrderStatus,
     cancelOrder,
     getAllUsers,
+    toggleUserAdmin,
+    deleteUser,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    getAllProductsAdmin,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const adminProtect = require('../middleware/adminMiddleware');
 
 // All admin routes require authentication AND admin role
-router.use(protect); // User must be logged in
-router.use(adminProtect); // User must be admin
+router.use(protect);
+router.use(adminProtect);
 
-// @desc    Get all orders
-// @route   GET /api/admin/orders
-router.get('/orders', getAllOrders);
-
-// @desc    Get admin statistics
-// @route   GET /api/admin/stats
+// ── Stats ────────────────────────────────────────────────
 router.get('/stats', getAdminStats);
 
-// @desc    Update order status
-// @route   PUT /api/admin/orders/:id/status
+// ── Orders ───────────────────────────────────────────────
+router.get('/orders', getAllOrders);
 router.put('/orders/:id/status', updateOrderStatus);
-
-// @desc    Cancel order
-// @route   DELETE /api/admin/orders/:id
 router.delete('/orders/:id', cancelOrder);
 
-// @desc    Get all users
-// @route   GET /api/admin/users
+// ── Users ────────────────────────────────────────────────
 router.get('/users', getAllUsers);
+router.put('/users/:id/toggle-admin', toggleUserAdmin);
+router.delete('/users/:id', deleteUser);
+
+// ── Products ─────────────────────────────────────────────
+router.get('/products', getAllProductsAdmin);
+router.post('/products', createProduct);
+router.put('/products/:id', updateProduct);
+router.delete('/products/:id', deleteProduct);
 
 module.exports = router;

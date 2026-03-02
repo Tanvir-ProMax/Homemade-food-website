@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiMapPin, FiPhone, FiUser, FiFileText, FiCheckCircle, FiArrowRight, FiShield, FiCreditCard } from 'react-icons/fi'
+import { FiMapPin, FiPhone, FiUser, FiFileText, FiCheckCircle, FiArrowRight, FiShield } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
