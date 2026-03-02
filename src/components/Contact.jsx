@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FiPhone, FiMail, FiMapPin, FiClock, FiSend } from 'react-icons/fi'
 const contactInfo = [
-    { icon: FiPhone, label: 'Phone', value: '+880 1407-781117'
+    { icon: FiPhone, label: 'Phone', value: '+880 1407-781117' },
     { icon: FiMail, label: 'Email', value: 'maria@homefood.com', href: 'mailto:maria@homefood.com' },
     { icon: FiMapPin, label: 'Area', value: 'Dhaka, Bangladesh', href: '#' },
     { icon: FiClock, label: 'Hours', value: 'Daily: 10 AM – 9 PM', href: '#' },
+];
 
-    
 export default function Contact() {
     const [form, setForm] = useState({ name: '', phone: '', address: '', order: '' })
     const [submitted, setSubmitted] = useState(false)
