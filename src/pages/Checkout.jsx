@@ -63,15 +63,26 @@ export default function Checkout() {
 
         setLoading(true)
 
-        // Construct order payload
+        // Construct order payload matching backend Order model
         const orderData = {
-            ...formData,
-            items: cartItems,
-            subtotal,
+            deliveryDetails: {
+                fullName: formData.name,
+                phone: formData.phone,
+                address: formData.address,
+                orderNote: formData.note,
+            },
+            orderItems: cartItems.map(item => ({
+                name: item.name,
+                qty: item.qty,
+                image: item.image,
+                price: item.price,
+                foodId: item.id,
+            })),
+            paymentMethod: formData.paymentMethod === 'bkash' ? 'bKash' : 'COD',
+            itemsPrice: subtotal,
+            deliveryFee: delivery,
             discount,
-            deliveryCharge: delivery,
-            grandTotal,
-            status: 'Pending',
+            totalPrice: grandTotal,
         }
 
         try {

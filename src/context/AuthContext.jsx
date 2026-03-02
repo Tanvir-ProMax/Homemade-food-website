@@ -28,23 +28,16 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    // Set loading to false immediately on mount
-    useEffect(() => {
-        setLoading(false)
-    }, [])
-
     // On mount, check if token exists and restore user session
     useEffect(() => {
         const token = getToken()
         if (token) {
-            // In a real app we'd verify token with /api/auth/me
-            // For now, set user from token if possible, or create minimal user
             // Try to decode token to get user info (basic approach)
             try {
                 const decoded = JSON.parse(atob(token.split('.')[1] || ''))
                 setUser({
                     name: decoded.name || 'User',
-                    email: decoded.email || email,
+                    email: decoded.email || '',
                     isAdmin: decoded.isAdmin || false,
                 })
             } catch (error) {
@@ -52,7 +45,7 @@ export function AuthProvider({ children }) {
                 console.log('Token decode failed, setting minimal user')
                 setUser({
                     name: 'User',
-                    email: token,
+                    email: '',
                     isAdmin: false,
                 })
             }
@@ -63,7 +56,6 @@ export function AuthProvider({ children }) {
     const register = async (name, email, password) => {
         try {
             const { data } = await api.post('/auth/register', { name, email, password })
-            // Assuming backend returns { token: '...', user: {...} }
             if (data.token) setToken(data.token)
             setUser({
                 name: data.name || name,
@@ -73,7 +65,6 @@ export function AuthProvider({ children }) {
             return { success: true }
         } catch (error) {
             console.error('Registration error:', error)
-            // Handle different error scenarios
             if (error.code === 'ECONNABORTED') {
                 return {
                     success: false,
@@ -81,50 +72,20 @@ export function AuthProvider({ children }) {
                 }
             }
             if (error.response) {
-                // Server responded with error
                 return {
                     success: false,
                     message: error.response.data?.message || 'Registration failed'
                 }
             }
             if (error.request) {
-                // Request was made but no response received
                 return {
                     success: false,
                     message: 'No response from server. Please check your connection.'
                 }
             }
-            // Other errors
             return {
                 success: false,
                 message: error.message || 'Registration failed. Please try again.'
-            }
-        }
-    }
-
-    const logout = () => {
-        removeToken()
-        setUser(null)
-    }
-            }
-            if (error.response) {
-                // Server responded with error
-                return {
-                    success: false,
-                    message: error.response.data?.message || 'Invalid email or password'
-                }
-            }
-            if (error.request) {
-                // Request was made but no response received
-                return {
-                    success: false,
-                    message: 'No response from server. Please check your connection.'
-                }
-            }
-            // Other errors
-            return {
-                success: false,
-                message: error.message || 'Login failed. Please try again.'
             }
         }
     }
@@ -141,7 +102,6 @@ export function AuthProvider({ children }) {
             return { success: true }
         } catch (error) {
             console.error('Login error:', error)
-            // Handle different error scenarios
             if (error.code === 'ECONNABORTED') {
                 return {
                     success: false,
@@ -149,20 +109,17 @@ export function AuthProvider({ children }) {
                 }
             }
             if (error.response) {
-                // Server responded with error
                 return {
                     success: false,
                     message: error.response.data?.message || 'Invalid email or password'
                 }
             }
             if (error.request) {
-                // Request was made but no response received
                 return {
                     success: false,
                     message: 'No response from server. Please check your connection.'
                 }
             }
-            // Other errors
             return {
                 success: false,
                 message: error.message || 'Login failed. Please try again.'

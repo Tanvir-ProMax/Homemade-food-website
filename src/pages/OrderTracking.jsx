@@ -5,9 +5,9 @@ import { FiCheckCircle, FiPackage, FiTruck, FiHome, FiMapPin, FiClock } from 're
 import { useAuth } from '../context/AuthContext'
 
 const trackSteps = [
-    { id: 1, label: 'Order Confirmed', icon: FiCheckCircle, desc: 'We have received your order.' },
+    { id: 1, label: 'Pending', icon: FiCheckCircle, desc: 'We have received your order.' },
     { id: 2, label: 'Preparing', icon: FiPackage, desc: 'Your food is being freshly prepared.' },
-    { id: 3, label: 'On the Way', icon: FiTruck, desc: 'Out for delivery.' },
+    { id: 3, label: 'On Way', icon: FiTruck, desc: 'Out for delivery.' },
     { id: 4, label: 'Delivered', icon: FiHome, desc: 'Enjoy your meal!' },
 ]
 
@@ -32,12 +32,12 @@ export default function OrderTracking() {
                 }
                 const data = await response.json()
                 setOrder(data)
-                
+
                 // Set current step based on order status
                 const statusToStep = {
                     'Pending': 1,
                     'Preparing': 2,
-                    'On the Way': 3,
+                    'On Way': 3,
                     'Delivered': 4,
                     'Cancelled': 0
                 }
@@ -61,7 +61,7 @@ export default function OrderTracking() {
                     setCurrentStep(2)
                 }, 3000),
                 setTimeout(() => {
-                    setOrder(prev => ({ ...prev, status: 'On the Way' }))
+                    setOrder(prev => ({ ...prev, status: 'On Way' }))
                     setCurrentStep(3)
                 }, 8000),
             ]
@@ -180,8 +180,8 @@ export default function OrderTracking() {
                                         {/* Circle */}
                                         <div
                                             className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 border-4 transition-colors duration-500 ${isCompleted
-                                                    ? 'bg-orange-500 border-white text-white shadow-md shadow-orange-200'
-                                                    : 'bg-white border-stone-100 text-stone-300'
+                                                ? 'bg-orange-500 border-white text-white shadow-md shadow-orange-200'
+                                                : 'bg-white border-stone-100 text-stone-300'
                                                 }`}
                                         >
                                             <Icon size={20} />

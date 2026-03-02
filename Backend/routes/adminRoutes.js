@@ -8,7 +8,7 @@ const {
     getAllUsers,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
-const { adminProtect } = require('../middleware/adminMiddleware');
+const adminProtect = require('../middleware/adminMiddleware');
 
 // All admin routes require authentication AND admin role
 router.use(protect); // User must be logged in

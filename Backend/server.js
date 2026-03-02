@@ -9,9 +9,13 @@ const app = express();
 // Connect to Database
 connectDB();
 
-// Middleware - Simple CORS configuration for all origins (for testing)
+// Middleware - CORS configuration
 app.use(cors({
-    origin: '*', // Allow all origins
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        // In production, replace with your specific frontend URL
+        callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -28,7 +32,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Basic route for testing
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         message: 'Homemade Food by Maria API is running...',
         status: 'healthy',
         environment: process.env.NODE_ENV || 'development'
