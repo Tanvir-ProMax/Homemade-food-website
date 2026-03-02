@@ -11,6 +11,10 @@ const removeToken = () => localStorage.removeItem('maria_auth_token')
 // Base api instance
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    timeout: 30000, // 30 second timeout for Render cold starts
+    headers: {
+        'Content-Type': 'application/json',
+    },
 })
 
 // Request interceptor to attach JWT
@@ -43,9 +47,32 @@ export function AuthProvider({ children }) {
             setUser(data.user || { name, email })
             return { success: true }
         } catch (error) {
+            console.error('Registration error:', error)
+            // Handle different error scenarios
+            if (error.code === 'ECONNABORTED') {
+                return {
+                    success: false,
+                    message: 'Server is starting up. Please try again in a few seconds.'
+                }
+            }
+            if (error.response) {
+                // Server responded with error
+                return {
+                    success: false,
+                    message: error.response.data?.message || 'Registration failed'
+                }
+            }
+            if (error.request) {
+                // Request was made but no response received
+                return {
+                    success: false,
+                    message: 'No response from server. Please check your connection.'
+                }
+            }
+            // Other errors
             return {
                 success: false,
-                message: error.response?.data?.message || 'Registration failed.'
+                message: error.message || 'Registration failed. Please try again.'
             }
         }
     }
@@ -57,9 +84,32 @@ export function AuthProvider({ children }) {
             setUser(data.user || { name: 'Foodie', email })
             return { success: true }
         } catch (error) {
+            console.error('Login error:', error)
+            // Handle different error scenarios
+            if (error.code === 'ECONNABORTED') {
+                return {
+                    success: false,
+                    message: 'Server is starting up. Please try again in a few seconds.'
+                }
+            }
+            if (error.response) {
+                // Server responded with error
+                return {
+                    success: false,
+                    message: error.response.data?.message || 'Invalid email or password'
+                }
+            }
+            if (error.request) {
+                // Request was made but no response received
+                return {
+                    success: false,
+                    message: 'No response from server. Please check your connection.'
+                }
+            }
+            // Other errors
             return {
                 success: false,
-                message: error.response?.data?.message || 'Invalid email or password.'
+                message: error.message || 'Login failed. Please try again.'
             }
         }
     }
