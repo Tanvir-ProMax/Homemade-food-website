@@ -27,7 +27,7 @@ const getAdminStats = async (req, res) => {
 
         // Calculate total revenue (only delivered orders)
         const orders = await Order.find({ status: 'Delivered' });
-        const totalRevenue = orders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
 
         // Get customers count
         const customers = await User.countDocuments();

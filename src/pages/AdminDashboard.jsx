@@ -292,7 +292,7 @@ export default function AdminDashboard() {
                                                             {order.status}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm font-semibold text-stone-900">৳{order.grandTotal || 0}</td>
+                                                     <td className="px-6 py-4 text-sm font-semibold text-stone-900">৳{order.totalPrice || 0}</td>
                                                     <td className="px-6 py-4 text-sm text-stone-600">
                                                         {new Date(order.createdAt).toLocaleDateString()}
                                                     </td>
